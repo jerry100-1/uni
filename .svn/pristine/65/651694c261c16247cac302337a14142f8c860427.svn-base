@@ -1,0 +1,535 @@
+<template>
+	<view class="content">
+		<view>
+			<view class="title">店铺信息</view>
+			<view>
+				<text>店铺名称</text>
+				<input type="text" v-model="shopName" />
+			</view>
+			<view>
+				<text>店铺图标</text>
+				<image :src="upSrc||defSrc" class="addImg"  @tap="proImgsChoose"></image>
+				<text class="grey">非必填,若未上传,则显示默认图标</text>
+			</view>
+			<view class="border">
+				<text>行业类别</text>
+				<picker :range="marchantType" @change="shopChange" range-key="typename">
+					<view>{{marchantType[shopIndex].typename}}</view>
+					<!-- <uni-icon type="arrowdown" size="18" color="#999"></uni-icon> -->
+				</picker>
+			</view>
+			<view class="border">
+				<text>线下支付</text>
+				<picker  :range="front" @change="frontChange">
+					<view>{{front[frontIndex]}}</view>
+					<!-- <uni-icon type="arrowdown" size="18" color="#999"></uni-icon> -->
+				</picker>
+			</view>
+			<view class="border" v-if="frontIndex==0">
+				<text>联盟经费</text>
+				<picker class="pci"  :range="linepayratio" @change="linepayratioChange">
+					<view>{{linepayratio[linepayratioIndex]}}</view>
+					<!-- <uni-icon type="arrowdown" size="18" color="#999"></uni-icon> -->
+				</picker>
+			</view>
+			<view class="border isFront">
+				<text>实体店铺</text>
+				<picker class="pci"  :range="isFrontArr" @change="isFrontArrChange">
+					<view>{{isFrontArr[isFrontArrIndex]}}</view>
+				</picker>
+				<uni-icon type="location" size="18" @tap="map" v-show="isFrontArrIndex==0"></uni-icon>
+				<text class="position" @tap="map" v-show="isFrontArrIndex==0">定位</text>
+			</view>
+			<view>
+				<text>客服电话</text>
+				<input type="number" v-model="cusPhone"/>
+			</view>
+			<!-- <view>
+				<text>客服QQ</text>
+				<input type="number" v-model="qq"/>
+			</view> -->
+			<view>
+				<text>客服微信</text>
+				<input type="text" v-model="cusWX" />
+			</view>
+			<view>
+				<text>登录账号</text>
+				<input type="text" v-model="cusNum" @blur="checkUserName"/>
+				<text>密码:123456</text>
+			</view>
+		</view>
+		<view>
+			<view class="title">公司信息</view>
+			<view>
+				<text>公司名称</text>
+				<input type="text" v-model="companyName" />
+			</view>
+			<view>
+				<text>公司地址</text>
+				<picker  :range="shopAddressP" @change="shopAddressPChange" range-key="proName">
+					<view>{{shopAddressP[pIndex].proName}}</view>
+				</picker>
+				<picker   :range="shopAddressC" @change="shopAddressChange" range-key="proName">
+					<view>{{shopAddressC[cIndex].proName}}</view>
+				</picker>
+				<picker  :range="shopAddressX" @change="shopAddressXChange" range-key="disName">
+					<view>{{shopAddressX[xIndex].disName}}</view>
+				</picker>
+			</view>
+			<view>
+				<input type="text" v-model="shopAddress" placeholder="请输入详细地址"/>
+			</view>
+			<view>
+				<text>联系人</text>
+				<input type="text" v-model="contactsName" maxlength="5"/>
+			</view>
+			<view>
+				<text>联系电话</text>
+				<input type="number" v-model="contactsPhone" maxlength="11"/>
+			</view>
+		</view>
+		<button  @tap="url">下一步</button>
+	</view>
+</template>
+
+<script>
+	import uniIcon from "@/components/uni-icon/uni-icon.vue"
+	import { pathToBase64, base64ToPath } from '@/js_sdk/gsq-image-tools/image-tools/index.js'
+	export default{
+		components: {
+			uniIcon,
+		},
+		data(){
+			return{
+				marchantId:"",//修改的id
+				upSrc:"",
+				defSrc:"../../static/capital/my_add_image@2x.png",
+				contactsPhone:"",//联系电话
+				contactsName:"",//联系人
+				shopAddressP:[{proName:""}],//公司地址省
+				pIndex:0,
+				shopAddressC:[{proName:""}],//公司地址市
+				cIndex:0,
+				shopAddressX:[{proName:""}],//公司地址
+				xIndex:0,
+				companyName:"",//公司名称
+				shopAddress:"",//公司详细地址
+				qq:"",//客服QQ
+				shopName:"",//店铺名称
+				cusNum:"",//登录账号
+				cusWX:"",//客服微信
+				cusPhone:"",//客服电话
+				linepayratio:["8%","15%"],//联盟经费
+				linepayratioIndex:0,//联盟下标
+				front:["需要","不需要"],//线下支付
+				frontIndex:0,
+				existsShop:1,
+				latitude:"",//纬度
+				longitude:"",//经度
+				isFrontArr:["有","无"],
+				isFrontArrIndex:0,
+				marchantType:[{typename:""}],//商品种类
+				shopIndex:0,//种类下标
+			}
+		},
+		onNavigationBarButtonTap(e){
+			uni.navigateTo({
+				url:"service"
+			})
+		},
+		methods:{
+			//定位
+			map(){
+				let that=this;
+				uni.chooseLocation({
+					success: function (res) {
+						// console.log('位置名称：' + res.name);
+						// console.log('详细地址：' + res.address);
+						// console.log('纬度：' + res.latitude);
+						// console.log('经度：' + res.longitude);
+						setTimeout(function() {
+							uni.showToast({
+								title:"定位成功",
+								icon:"none"
+							})
+						}, 200);
+						
+						that.latitude=res.latitude;//纬度
+						that.longitude=res.longitude;//经度
+					}
+				})
+			},
+			//检测用户名是否存在
+			checkUserName(e){
+			
+				let that=this;
+				that.$ajax({
+					url:"/channelManagementRest/checkExistsAccountName",
+					data:{
+						accountName:e.detail.value,
+						marchantId:that.marchantId||null
+					},
+					success(d){
+						
+					}
+				})
+			},
+			//实体店铺的选择
+			isFrontArrChange(e){
+				this.isFrontArrIndex=e.detail.value;
+				if(e.detail.value==1){
+					this.latitude="";//纬度
+					this.longitude="";//经度
+				}
+				this.existsShop=this.isFrontArrIndex*1+1;
+			},
+			//联盟经费修改
+			linepayratioChange(e){
+				this.linepayratioIndex=e.detail.value;
+			},
+			shopAddressPChange(e){
+				let that=this;
+				that.pIndex=e.detail.value;
+				that.searchCity();
+			},
+			frontChange(e){
+				this.frontIndex=e.detail.value;
+			},
+			/**
+			 * 查询市
+			 * */
+			searchCity(obj){
+				let that=this;
+				that.$ajax({
+					url:"/shopProduct/getCommonAddressCityList",
+					data:{
+						proCode:that.shopAddressP[that.pIndex].code
+					},
+					success(d){
+						that.shopAddressC=d;
+						if(obj){
+							for(let i in d){
+								if(obj.companyCity==d[i].code){
+									that.cIndex=i;
+									break;
+								}
+							}
+						}
+						that.searchX(obj);
+					}
+				})
+			},
+			checkPhone(phone){
+				if(!(/^1[3456789]\d{9}$/.test(phone))){
+					return false;
+				}
+				return true
+			},
+			/**
+			 * 
+			* 查询县/区
+			* 
+			* */
+			searchX(obj){
+				let that=this;
+
+				that.$ajax({
+					url:"/shopProduct/getCommonAddressDistrictList",
+					data:{
+						cityCode:that.shopAddressC[that.cIndex].code
+					},
+					success(d){
+						that.shopAddressX=d;
+						if(obj){
+							for(let i in d){
+								if(obj.companyArea==d[i].code){
+									that.xIndex=i;
+									break;
+								}
+							}
+						}
+					}
+				})
+			},
+			shopAddressChange(e){
+				let that=this;
+				that.cIndex=e.detail.value;
+				that.searchCity();
+			},
+			shopAddressXChange(e){
+				this.xIndex=e.detail.value;
+			},
+			url(){
+				let that=this;
+				if(that.shopName&&that.cusPhone&&that.cusNum&&that.contactsName&&that.contactsPhone&&that.shopAddress&&that.companyName){
+					if(!that.checkPhone(that.contactsPhone)){
+						uni.showToast({
+							title:"请填写正确的手机号码",
+							icon:"none"
+						})
+						return
+					}
+					let obj={
+						shopName:that.shopName,
+						displayImg:that.upSrc,
+						servicePhone:that.cusPhone,
+						qq:that.qq,
+						weixin:that.cusWX,
+						accountName:that.cusNum||"",
+						contactsName:that.contactsName,
+						contactsPhone:that.contactsPhone,//联系电话
+						marchantType:that.marchantType[that.shopIndex].marchanttypeid,
+						isFront:that.frontIndex*1+1,
+						companyProvince:that.shopAddressP[that.pIndex].code,
+						proName:that.shopAddressP[that.pIndex].proName,
+						companyCity:that.shopAddressC[that.cIndex].code,
+						cityName:that.shopAddressP[that.pIndex].proName,
+						companyName:that.companyName,
+						companyArea:that.shopAddressX[that.xIndex].code,
+						areaName:that.shopAddressP[that.pIndex].disName,
+						address:that.shopAddress,
+						linePayRatio:that.linepayratioIndex==0?80:150,
+						existsShop:that.existsShop,
+						latitude:that.latitude,//纬度
+						longitude:that.longitude,//经度
+					}
+					obj=JSON.stringify(obj)
+					uni.navigateTo({
+						url:"enter2?obj="+obj+"&marchantId="+that.marchantId
+					})
+				}else{
+					uni.showToast({
+						title:"请填写完整的信息",
+						icon:"none"
+					})
+				}
+				
+			},
+			limit(limit){
+				var size = "";
+				size = (limit/(1024 * 1024)).toFixed(2);//转MB
+				var sizeStr = size + "";                        //转成字符串
+				var index = sizeStr.indexOf(".");                    //获取小数点处的索引
+				var dou = sizeStr.substr(index + 1 ,2)            //获取小数点后两位的值
+				if(dou == "00"){                                //判断后两位是否为00，如果是则删除00
+					return sizeStr.substring(0, index) + sizeStr.substr(index + 3, 2)
+				}
+				return size;
+			},
+			//店铺图片选择
+			proImgsChoose(){
+				let that=this;
+				uni.chooseImage({
+					count: 1, //默认9
+					sizeType: ['original', 'compressed'], //可以指定是原图还是压缩图，默认二者都有
+					success: function (res) {
+						console.log(that.limit(res.tempFiles[0].size))
+						if(that.limit(res.tempFiles[0].size)>1){
+							uni.showToast({
+								title:"图片大小不能超过1M",
+								icon:"none"
+							})
+							return
+						}
+						that.$ajax({
+							uploadFile:true,
+							formData:{
+								'fileName':"/marchant/",
+							},
+							filePath:res.tempFilePaths[0],
+							success(d){
+								that.upSrc=d
+							}
+						})
+					}
+				});
+			},
+			//商品品类
+			shopChange(e){
+				this.shopIndex=e.detail.value;
+				
+			},
+			ProvinceList(obj){
+				let that=this;
+				that.$ajax({
+					url:"/shopProduct/getCommonAddressProvinceList",
+					success(d){
+						that.shopAddressP=d;
+						if(obj){
+							for(let i in d){
+								if(obj.companyProvince==d[i].code){
+									that.pIndex=i;
+									break;
+								}
+							}
+						}
+						that.searchCity(obj)
+					}
+				})
+			},
+			typeMapper(index){
+				let that=this
+				
+				that.$ajax({
+					url:"/channelManagementRest/getSelectMarchantTypeMapper",
+					success(d){
+						that.marchantType=d;
+						if(index){
+							for(let i in d){
+								
+								if(index==d[i].marchanttypeid){
+									
+									that.shopIndex=i;
+									break;
+								}
+							}
+						}
+					}
+				})
+			}
+		},
+		onLoad(e){
+			if(e.id){
+				this.marchantId=e.id
+			}
+			let that=this;
+			if(that.marchantId){
+				that.$ajax({
+					url:"/channelManagementRest/getSelectMarchantInfo",
+					data:{
+						marchantId:that.marchantId
+					},success(d){
+						that.shopName=d.shopName;
+						that.upSrc=d.displayImg;
+						that.cusPhone=d.servicePhone;
+						that.qq=d.qq;
+						that.cusWX=d.weixin;
+						that.cusNum=d.accountName||"";
+						that.companyName=d.companyName;
+						that.shopAddress=d.address;
+						that.contactsName=d.contactsName;
+						that.contactsPhone=d.contactsPhone;
+						that.frontIndex=d.isFront*1-1;
+						that.existsShop=d.existsShop||0;
+						that.latitude=d.latitude||"",//纬度
+						that.longitude=d.longitude||"",//经度
+						that.linepayratioIndex=d.linePayRatio==80?0:1;
+						that.typeMapper(d.marchantType)
+						that.ProvinceList(d);
+					}
+				})
+							
+			}else{
+				that.typeMapper()
+				that.ProvinceList();
+			}
+		}
+	}
+</script>
+
+<style scoped>
+	.content{
+		padding: 0;
+		background: #F2F2F2;
+	}
+	.content>view{
+		background: #fff;
+		padding:30upx;
+		margin-bottom: 40upx;
+	}
+	.border picker{
+		width:500upx;
+	}
+	.content>view>view{
+		margin-bottom: 20upx;
+		font-size: 26upx;
+	}
+	.title{
+		padding-left: 17upx;
+		border-left:5upx solid #EE3535;
+		font-size: 28upx;
+		color:#333;
+	}
+	input{
+		width:400upx;
+		border-bottom:1px solid #eee;
+		display: inline-block;
+		vertical-align: middle;
+	}
+	.addImg{
+		width:100upx;
+		height:100upx;
+		vertical-align: top;
+		margin-right: 10upx;
+	}
+	.grey{
+		color:#999;
+		vertical-align: bottom;
+		position: relative;
+		bottom: -32px;
+	}
+	.content text{
+		margin-right: 10upx;
+	}
+	picker view{
+		overflow: hidden;
+		text-overflow:ellipsis;
+		white-space: nowrap;
+	}
+	picker{
+		vertical-align: middle;
+		display: inline-block;
+		width:160upx;
+		padding-left: 10upx;
+		margin-right: 10upx;
+		border-radius: 20upx;
+		height: 60upx;
+		line-height:60upx;
+		position: relative;
+		border:1px solid #eee;
+	}
+	.uni-icon{
+		position: absolute;
+		top:15upx;
+		right: 20upx;
+	}
+	picker input{
+		border:none;
+	}
+	.isFront{
+		position: relative;
+	}
+	.isFront picker{
+		width:380upx;
+	}
+	.isFront .uni-icon{
+		right:140upx;
+	}
+	.isFront .position{
+		margin-left: 40upx;
+	}
+	button{
+		width: 525upx; 
+		height:72upx;
+		line-height: 72upx;
+		font-size: 30upx;
+		text-align: center;
+		background: #EE3535;
+		color:#fff;
+		outline: none;
+		border:none;
+		margin-bottom: 20upx;
+	}
+	uni-button:after,uni-button:before{
+		border:none;
+	}
+	.inline>view{
+		display: inline-block;
+
+		margin-bottom: 20upx;
+	}
+    .inline>view view{
+		width:118upx;
+		line-height: 60upx;
+	}
+</style>

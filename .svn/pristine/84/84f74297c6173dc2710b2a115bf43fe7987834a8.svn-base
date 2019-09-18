@@ -1,0 +1,1 @@
+<view class="content data-v-3878a3e4"><canvas canvas-id="myCanvas" id="canvas" class="data-v-3878a3e4"></canvas><view class="data-v-3878a3e4"><image src="{{src}}" alt class="data-v-3878a3e4"></image><button data-event-opts="{{[['tap',[['save',['$event']]]]]}}" bindtap="__e" class="data-v-3878a3e4">保存图片</button></view></view>
